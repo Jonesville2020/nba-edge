@@ -50,8 +50,6 @@ def load_bets(demo_mode: bool, api_key: str):
 
 
 names = data.team_names()
-if not demo:
-    st.caption(f"Data through {df.date.max():%b %d, %Y} (refreshed each morning)")
 tab_player, tab_heat, tab_bets, tab_teams = st.tabs(
     ["Player matchup", "Hot & cold board", "Team bets", "Team ratings"])
 
@@ -71,6 +69,8 @@ except Exception as e:
     st.warning(f"No saved data yet, showing DEMO data instead. {e}")
     df, ctx, factors, player_adv, absn = load_players(True)
     demo = True
+if not demo:
+    st.caption(f"Data through {df.date.max():%b %d, %Y} (refreshed each morning)")
 
 # ------------------------------------------------------------------ player
 with tab_player:
