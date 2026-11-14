@@ -33,7 +33,10 @@ with st.sidebar:
 
 @st.cache_data(ttl=3600, show_spinner="Loading this season's player data…")
 def load_players(demo_mode: bool):
-    logs, bio, team_adv, player_adv = data.demo_player_data() if demo_mode else data.load_player_data()
+    if demo_mode:
+        logs, bio, team_adv, player_adv = data.demo_player_data()
+    else:
+        logs, bio, team_adv, player_adv = data.load_snapshot()
     df = an.prep(logs, bio)
     ctx = an.team_context(df, team_adv)
     return df, ctx, an.opp_factors(df), player_adv, an.get_absences(df)
@@ -47,6 +50,8 @@ def load_bets(demo_mode: bool, api_key: str):
 
 
 names = data.team_names()
+if not demo:
+    st.caption(f"Data through {df.date.max():%b %d, %Y} (refreshed each morning)")
 tab_player, tab_heat, tab_bets, tab_teams = st.tabs(
     ["Player matchup", "Hot & cold board", "Team bets", "Team ratings"])
 
@@ -63,8 +68,9 @@ def heat_bar(score: float) -> str:
 try:
     df, ctx, factors, player_adv, absn = load_players(demo)
 except Exception as e:
-    st.warning(f"Live player data unavailable, showing DEMO data instead. {e}")
+    st.warning(f"No saved data yet, showing DEMO data instead. {e}")
     df, ctx, factors, player_adv, absn = load_players(True)
+    demo = True
 
 # ------------------------------------------------------------------ player
 with tab_player:

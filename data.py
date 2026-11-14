@@ -208,3 +208,13 @@ def demo_player_data(seed: int = 11):
                                "reb_pct": rng.uniform(.04, .2, len(pl)),
                                "pie": rng.uniform(.06, .18, len(pl))})
     return logs, pd.DataFrame(bio), team_adv, player_adv
+
+
+def load_snapshot():
+    """Read the files written by fetch_snapshot.py."""
+    import pathlib
+    p = pathlib.Path(__file__).parent / "data"
+    if not (p / "logs.csv").exists():
+        raise FileNotFoundError("data/logs.csv missing; run the 'Refresh data' GitHub action")
+    return (pd.read_csv(p / "logs.csv", parse_dates=["date"]), pd.read_csv(p / "bio.csv"),
+            pd.read_csv(p / "team_adv.csv"), pd.read_csv(p / "player_adv.csv"))
