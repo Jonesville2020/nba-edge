@@ -69,9 +69,13 @@ def get_absences(df: pd.DataFrame, min_mpg=20, min_games=5) -> pd.DataFrame:
 def team_context(df: pd.DataFrame, team_adv: pd.DataFrame) -> pd.DataFrame:
     """Per team: ratings, pace, rotation height, and tier labels (tertiles)."""
     h = df.dropna(subset=["height_in"])
-    ht = (h.assign(hw=h.height_in * h["min"]).groupby("team")
-          .apply(lambda g: g.hw.sum() / g["min"].sum(), include_groups=False).rename("height"))
-    ctx = team_adv.set_index("team").join(ht)
+    ctx = team_adv.set_index("team")
+    if h.empty:  # no height data available
+        ctx["height"] = np.nan
+    else:
+        ht = (h.assign(hw=h.height_in * h["min"]).groupby("team")
+              .apply(lambda g: g.hw.sum() / g["min"].sum(), include_groups=False).rename("height"))
+        ctx = ctx.join(ht)
 
     def tier(s, labels, ascending=True):
         r = s.rank(method="first", ascending=ascending)
@@ -80,7 +84,8 @@ def team_context(df: pd.DataFrame, team_adv: pd.DataFrame) -> pd.DataFrame:
     ctx["def_tier"] = tier(ctx.def_rating, ["Elite defense", "Average defense", "Weak defense"])
     ctx["off_tier"] = tier(ctx.off_rating, ["Weak offense", "Average offense", "Elite offense"])
     ctx["pace_tier"] = tier(ctx.pace, ["Slow pace", "Average pace", "Fast pace"])
-    ctx["height_tier"] = tier(ctx.height, ["Smaller lineup", "Average size", "Bigger lineup"])
+    ctx["height_tier"] = ("Average size" if ctx.height.isna().all() else
+                          tier(ctx.height, ["Smaller lineup", "Average size", "Bigger lineup"]))
     return ctx
 
 
