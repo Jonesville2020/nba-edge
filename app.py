@@ -8,6 +8,15 @@ import heat
 import model
 
 st.set_page_config(page_title="NBA Edge", layout="wide")
+st.markdown("""<style>
+.block-container{padding:1rem .8rem 4rem;max-width:900px}
+h1,h2,h3{font-family:'Oswald','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.03em}
+h2,h3{color:#f2b632}
+[data-testid="stMetric"]{background:#0b1a3a;border:1px solid #1c2f5e;border-radius:10px;padding:10px}
+[data-testid="stMetricValue"]{color:#f2b632}
+.stTabs [data-baseweb="tab"]{font-weight:700}
+[data-testid="stDataFrame"]{border:1px solid #1c2f5e;border-radius:10px}
+</style>""", unsafe_allow_html=True)
 st.title("NBA Edge")
 
 with st.sidebar:
@@ -54,8 +63,8 @@ def heat_bar(score: float) -> str:
 try:
     df, ctx, factors, player_adv, absn = load_players(demo)
 except Exception as e:
-    st.error(f"Player data failed to load: {e}")
-    st.stop()
+    st.warning(f"Live player data unavailable, showing DEMO data instead. {e}")
+    df, ctx, factors, player_adv, absn = load_players(True)
 
 # ------------------------------------------------------------------ player
 with tab_player:

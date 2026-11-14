@@ -1,3 +1,4 @@
+import os
 """Data loading: nba_api for results, The Odds API for lines, demo fallback."""
 import math
 import numpy as np
@@ -113,7 +114,13 @@ def load_player_data(season: str | None = None):
     from nba_api.stats.endpoints import (leaguedashplayerbiostats, leaguedashplayerstats,
                                          leaguedashteamstats, playergamelogs)
     season = season or current_season()
-    raw = playergamelogs.PlayerGameLogs(season_nullable=season, timeout=60).get_data_frames()[0]
+    proxy = os.getenv("NBA_PROXY") or None
+    try:  # stats.nba.com silently drops many cloud IPs; fail fast instead of hanging
+        requests.get("https://stats.nba.com", timeout=8, proxies={"https": proxy} if proxy else None)
+    except Exception as e:
+        raise RuntimeError("stats.nba.com is not reachable from this server (cloud IPs are often "
+                           f"blocked). Set an NBA_PROXY secret or run locally. ({type(e).__name__})")
+    raw = playergamelogs.PlayerGameLogs(season_nullable=season, timeout=25, proxy=proxy).get_data_frames()[0]
     logs = pd.DataFrame({
         "game_id": raw.GAME_ID, "date": pd.to_datetime(raw.GAME_DATE),
         "player_id": raw.PLAYER_ID, "player": raw.PLAYER_NAME, "team": raw.TEAM_ABBREVIATION,
@@ -122,15 +129,15 @@ def load_player_data(season: str | None = None):
         "fg3m": raw.FG3M, "stl": raw.STL, "blk": raw.BLK, "tov": raw.TOV,
         "fgm": raw.FGM, "fga": raw.FGA, "fg3a": raw.FG3A, "ftm": raw.FTM, "fta": raw.FTA,
         "pf": raw.PF, "plus_minus": raw.PLUS_MINUS})
-    b = leaguedashplayerbiostats.LeagueDashPlayerBioStats(season=season, timeout=60).get_data_frames()[0]
+    b = leaguedashplayerbiostats.LeagueDashPlayerBioStats(season=season, timeout=25, proxy=proxy).get_data_frames()[0]
     bio = pd.DataFrame({"player_id": b.PLAYER_ID, "height_in": b.PLAYER_HEIGHT_INCHES})
     t = leaguedashteamstats.LeagueDashTeamStats(
-        season=season, measure_type_detailed_defense="Advanced", timeout=60).get_data_frames()[0]
+        season=season, measure_type_detailed_defense="Advanced", timeout=25, proxy=proxy).get_data_frames()[0]
     ab = _abbr_by_name()
     team_adv = pd.DataFrame({"team": t.TEAM_NAME.map(ab), "off_rating": t.OFF_RATING,
                              "def_rating": t.DEF_RATING, "net_rating": t.NET_RATING, "pace": t.PACE})
     pa = leaguedashplayerstats.LeagueDashPlayerStats(
-        season=season, measure_type_detailed_defense="Advanced", timeout=60).get_data_frames()[0]
+        season=season, measure_type_detailed_defense="Advanced", timeout=25, proxy=proxy).get_data_frames()[0]
     player_adv = pa[["PLAYER_ID", "GP", "MIN", "OFF_RATING", "DEF_RATING", "NET_RATING",
                      "USG_PCT", "TS_PCT", "AST_PCT", "REB_PCT", "PIE"]].rename(
         columns=str.lower).rename(columns={"player_id": "player_id"})
